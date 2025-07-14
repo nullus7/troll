@@ -4,35 +4,23 @@ import json
 
 connected_clients = set()
 
-async def handle_client(websocket, path=None):  # Make path optional
-    # Register client
+async def handle_client(websocket, path=None):
     connected_clients.add(websocket)
-    print(f"New client connected (path: {path}). Total clients: {len(connected_clients)}")
+    print(f"New client connected. Total clients: {len(connected_clients)}")
     
     try:
         async for message in websocket:
             data = json.loads(message)
-            print(f"Received message: {data}")
+            print(f"Routing message: {data}")
             
-            if data.get('type') == 'add':
-                # Perform addition
-                result = data['a'] + data['b']
-                response = {'type': 'add_result', 'result': result}
-                await websocket.send(json.dumps(response))
-                
-            elif data.get('type') == 'auth':
-                # Handle authentication
-                if data.get('token') == 'your_secret_token':
-                    response = {'type': 'auth_success'}
-                    await websocket.send(json.dumps(response))
-                else:
-                    response = {'type': 'auth_failed'}
-                    await websocket.send(json.dumps(response))
+            # Route messages between clients
+            for client in connected_clients:
+                if client != websocket:  # Don't echo back to sender
+                    await client.send(json.dumps(data))
                     
     finally:
-        # Unregister client
         connected_clients.remove(websocket)
-        print(f"Client disconnected. Remaining clients: {len(connected_clients)}")
+        print(f"Client disconnected. Remaining: {len(connected_clients)}")
 
 async def main():
     server = await websockets.serve(
@@ -40,7 +28,7 @@ async def main():
         "0.0.0.0",
         8765
     )
-    print("WebSocket server started on ws://0.0.0.0:8765")
-    await asyncio.Future()  # run forever
+    print("WebSocket message router started on ws://0.0.0.0:8765")
+    await asyncio.Future()
 
 asyncio.run(main())
