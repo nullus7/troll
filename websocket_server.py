@@ -8,7 +8,7 @@ connected_clients = set()
 async def handle_client(websocket, path):
     # Register client
     connected_clients.add(websocket)
-    print(f"New client connected. Total clients: {len(connected_clients)}")
+    print(f"New client connected (path: {path}). Total clients: {len(connected_clients)}")
     
     try:
         async for message in websocket:
@@ -36,8 +36,14 @@ async def handle_client(websocket, path):
         print(f"Client disconnected. Remaining clients: {len(connected_clients)}")
 
 async def main():
-    async with websockets.serve(handle_client, "0.0.0.0", 8765):
-        print("WebSocket server started on ws://0.0.0.0:8765")
-        await asyncio.Future()  # run forever
+    # Explicitly specify the handler with both parameters
+    server = await websockets.serve(
+        handle_client,
+        "0.0.0.0",
+        8765,
+        process_request=None  # This ensures path is passed correctly
+    )
+    print("WebSocket server started on ws://0.0.0.0:8765")
+    await asyncio.Future()  # run forever
 
 asyncio.run(main())
